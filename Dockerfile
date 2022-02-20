@@ -114,8 +114,16 @@ RUN apt-get update \
 # Install Odoo source code and install it as a package inside the container with additional tools
 ENV ODOO_VERSION ${ODOO_VERSION:-13.0}
 
-RUN pip3 install --prefix=/usr/local --no-cache-dir --upgrade --requirement https://raw.githubusercontent.com/odoo/odoo/${ODOO_VERSION}/requirements.txt \
-    && pip3 install --prefix=/usr/local --no-cache-dir --upgrade \
+RUN pip3 -qq install --prefix=/usr/local --no-cache-dir --upgrade \
+    gevent==20.12.1 \
+    greenlet==0.4.17 \
+    Werkzeug==0.15.6 \
+    # debugpy has python2 libraries which can't be compiled with python3
+    debugpy \
+    && rm -rf /var/lib/apt/lists/* /tmp/*
+
+RUN pip3 -qq install --prefix=/usr/local --no-cache-dir --upgrade --requirement https://raw.githubusercontent.com/odoo/odoo/${ODOO_VERSION}/requirements.txt \
+    && pip3 -qq install --prefix=/usr/local --no-cache-dir --upgrade \
     'websocket-client~=0.56' \
     astor \
     black \
@@ -135,15 +143,7 @@ RUN pip3 install --prefix=/usr/local --no-cache-dir --upgrade --requirement http
     && apt-get autopurge -yqq \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
-RUN git clone --depth 100 -b ${ODOO_VERSION} https://github.com/odoo/odoo.git /opt/odoo \
-    && pip3 install --editable /opt/odoo \
-    && pip3 install --prefix=/usr/local --no-cache-dir --upgrade \
-    gevent==20.12.1 \
-    greenlet==0.4.17 \
-    Werkzeug==0.15.6 \
-    # debugpy has python2 libraries which can't be compiled with python3
-    debugpy \
-    && rm -rf /var/lib/apt/lists/* /tmp/*
+RUN git clone --depth 100 -b ${ODOO_VERSION} https://github.com/odoo/odoo.git /opt/odoo && pip3 install --editable /opt/odoo
 
 FROM base as production
 

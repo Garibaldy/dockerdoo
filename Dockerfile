@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bullseye as base
+FROM python:3.8-slim-bullseye as base
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 
@@ -109,12 +109,14 @@ RUN apt-get update \
     tcl-dev \
     tk-dev \
     zlib1g-dev \
+    gcc \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Install Odoo source code and install it as a package inside the container with additional tools
 ENV ODOO_VERSION ${ODOO_VERSION:-15.0}
 
-RUN pip3 install --prefix=/usr/local --no-cache-dir --upgrade --requirement https://raw.githubusercontent.com/odoo/odoo/${ODOO_VERSION}/requirements.txt \
+RUN pip3 install --prefix=/usr/local --no-cache-dir --upgrade --requirement https://gist.githubusercontent.com/Garibaldy/18a4f5a251a16a7b372d7b37d0f4560a/raw \
     && pip3 -qq install --prefix=/usr/local --no-cache-dir --upgrade \
     'websocket-client~=0.56' \
     astor \
@@ -135,7 +137,7 @@ RUN pip3 install --prefix=/usr/local --no-cache-dir --upgrade --requirement http
     && apt-get autopurge -yqq \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
-RUN git clone --depth 100 -b ${ODOO_VERSION} https://github.com/odoo/odoo.git /opt/odoo \
+RUN git clone --depth 100 -b ${ODOO_VERSION} https://github.com/OCA/OCB.git /opt/odoo \
     && pip3 install --editable /opt/odoo \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
@@ -294,6 +296,7 @@ COPY --chown=${ODOO_USER}:${ODOO_USER} ./resources/getaddons.py /
 ARG HOST_CUSTOM_ADDONS
 ENV HOST_CUSTOM_ADDONS ${HOST_CUSTOM_ADDONS:-./custom}
 COPY --chown=${ODOO_USER}:${ODOO_USER} ${HOST_CUSTOM_ADDONS} ${ODOO_EXTRA_ADDONS}
+ENV PATH="/usr/bin:$PATH"
 
 RUN chmod u+x /entrypoint.sh
 
@@ -301,6 +304,7 @@ EXPOSE 8069 8071 8072
 
 # Docker healthcheck command
 HEALTHCHECK CMD curl --fail http://127.0.0.1:8069/web_editor/static/src/xml/ace.xml || exit 1
+
 
 ENTRYPOINT ["/entrypoint.sh"]
 

@@ -1,4 +1,4 @@
-FROM python:3.8-slim-bullseye as base
+FROM python:3.10-slim-bullseye as base
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
 

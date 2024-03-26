@@ -1,6 +1,7 @@
-FROM python:3.10-slim-bullseye as base
+FROM python:3.8-slim-bullseye as base
 
 SHELL ["/bin/bash", "-xo", "pipefail", "-c"]
+ENV PATH="/usr/bin:$PATH"
 
 USER root
 
@@ -296,7 +297,7 @@ COPY --chown=${ODOO_USER}:${ODOO_USER} ./resources/getaddons.py /
 ARG HOST_CUSTOM_ADDONS
 ENV HOST_CUSTOM_ADDONS ${HOST_CUSTOM_ADDONS:-./custom}
 COPY --chown=${ODOO_USER}:${ODOO_USER} ${HOST_CUSTOM_ADDONS} ${ODOO_EXTRA_ADDONS}
-ENV PATH="/usr/bin:$PATH"
+
 
 RUN chmod u+x /entrypoint.sh
 

@@ -158,7 +158,7 @@ There are two primary ways to handle your custom addons:
 
 ### SSH Key Access
 
-The base `docker-compose.yml` mounts your host's `~/.ssh/` directory into `/opt/odoo/.ssh/` inside the container. This allows processes within the container (like pip installing from a private git repository) to use your local SSH keys for authentication.
+Host SSH keys are **not** mounted by default. To use private git remotes from inside the container, add a local Compose override that mounts `~/.ssh` (dev-only; never in production stacks).
 
 ## Exposed Ports
 

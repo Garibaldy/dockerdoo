@@ -4,6 +4,8 @@ services:
     ports:
       - 1984:1984
     restart: unless-stopped
+    networks:
+      - odoonet
     depends_on:
       db:
         condition: service_healthy
@@ -12,8 +14,6 @@ services:
 
   odoo:
     volumes:
-      # Host paths (.ssh for git inside container — dev only)
-      - ~/.ssh/:/opt/odoo/.ssh/:cached
       # Host paths (odoo modules, src code & conf)
       - ./custom:${ODOO_EXTRA_ADDONS}:delegated
     environment:
@@ -27,4 +27,5 @@ services:
       db:
         condition: service_healthy
       wdb:
+        condition: service_started
     command: ['odoo', '--dev', 'wdb,reload,qweb,werkzeug,xml']

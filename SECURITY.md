@@ -6,53 +6,72 @@ Default `postgres` image creates `POSTGRES_USER` as **superuser** and appends `h
 
 Init scripts in `resources/postgres-init/` run **only on empty** `psql` volume.
 
+## Role model
+
+| Variable | Role |
+|----------|------|
+| `POSTGRES_ADMIN_USER` / `POSTGRES_ADMIN_PASSWORD` | Bootstrap **superuser** (PostgreSQL container only) |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` | **Application** role for Odoo (`NOSUPERUSER`, `NOCREATEROLE`, `CREATEDB`) |
+| `DB_ENV_POSTGRES_*` | Must match the application role (15–17 entrypoint) |
+
+Odoo must never connect as the admin superuser.
+
 ## New deploy
 
 ```bash
-cp .env.example .env   # set strong passwords; sync POSTGRES_* and DB_ENV_*
+cp .env.example .env   # set POSTGRES_PASSWORD, POSTGRES_ADMIN_PASSWORD, ADMIN_PASSWORD
+# Keep POSTGRES_* and DB_ENV_POSTGRES_* in sync for the app role
 docker compose up -d
 ```
 
 Verify:
 
 ```bash
-docker compose exec db psql -U odoo -d postgres -c \
-  "SELECT rolsuper, rolreplication FROM pg_roles WHERE rolname='odoo';"
+APP_USER="${POSTGRES_USER:-odoo}"
+ADMIN_USER="${POSTGRES_ADMIN_USER:-odoo_admin}"
+
+docker compose exec db psql -U "$ADMIN_USER" -d postgres -c \
+  "SELECT rolname, rolsuper, rolcreatedb, rolcreaterole FROM pg_roles WHERE rolname IN ('$APP_USER', '$ADMIN_USER') ORDER BY rolname;"
+
 docker compose exec db grep '^host' /var/lib/postgresql/data/pgdata/pg_hba.conf
 ```
 
-Expected: `rolsuper=f`, no `host all all all`, rule for `DOCKER_ODONET_SUBNET` (default `172.28.0.0/16`).
+Expected: exactly one superuser (`$ADMIN_USER`); app role with `rolsuper=f`, `rolcreaterole=f`, `rolcreatedb=t`; no `host all all all`; rule for `DOCKER_ODONET_SUBNET` (default `172.28.0.0/16`).
+
+Test `COPY … TO PROGRAM` as the app user (must fail):
+
+```bash
+docker compose exec db psql -U "$APP_USER" -d postgres -c "COPY (SELECT 1) TO PROGRAM 'id';"
+```
 
 ## Existing volume (already has data)
 
-Init does **not** re-run. Apply manually:
+Init does **not** re-run. Prefer **backup and restore into a fresh cluster** (see upstream migration notes). Manual hardening below is for stacks that cannot re-init immediately.
 
 ### 0. Backup first
 
 ```bash
 cd /path/to/your-stack
 BACKUP=~/backup_$(date +%Y%m%d_%H%M).sql.gz
-docker compose exec -T db pg_dumpall -U odoo | gzip > "$BACKUP"
+# Use your current superuser if you have not migrated roles yet
+docker compose exec -T db pg_dumpall -U "$ADMIN_USER" | gzip > "$BACKUP"
 gzip -t "$BACKUP" && ls -lh "$BACKUP"
 ```
 
 ### 1. Sync `.env` credentials
 
-Entrypoint prioritizes `DB_ENV_*` over `POSTGRES_*`. Both must match:
+Set strong passwords for app, admin, and `ADMIN_PASSWORD`. Application settings:
 
 ```env
 POSTGRES_USER=odoo
-POSTGRES_PASSWORD=<strong-password>
+POSTGRES_PASSWORD=<app-password>
+POSTGRES_ADMIN_USER=odoo_admin
+POSTGRES_ADMIN_PASSWORD=<admin-password>
 DB_ENV_POSTGRES_USER=odoo
-DB_ENV_POSTGRES_PASSWORD=<strong-password>
+DB_ENV_POSTGRES_PASSWORD=<app-password>
 ```
 
 ### 2. Recreate DB container (cleans /tmp, /dev/shm)
-
-```bash
-docker compose up -d --force-recreate db
-until docker compose exec db pg_isready -U odoo; do sleep 2; done
-```
 
 Does not remove the `psql` volume.
 
@@ -64,36 +83,43 @@ Inside the `db` container:
 - Remove: `/tmp/.dl_*`, `/dev/shm/.unicorn`, `/var/lib/postgresql/.claude/`
 - Block in `/etc/hosts`: `31.77.227.130`, `xmr.kryptex.network`
 
-### 4. SQL hardening
+### 4. SQL hardening (admin session)
 
-Run in order (`NOREPLICATION` before `NOSUPERUSER`):
+Connect as the **bootstrap superuser** (`POSTGRES_ADMIN_USER` or legacy superuser name).
 
-```sql
-ALTER USER odoo PASSWORD '<strong-password>';
-ALTER USER odoo NOREPLICATION;
-ALTER USER odoo NOSUPERUSER;
-ALTER USER odoo CREATEDB;
-REVOKE pg_execute_server_program FROM odoo;
+Create the app role if missing (safe identifiers via psql variables):
+
+```bash
+docker compose exec db psql -U "$ADMIN_USER" -d postgres \
+  -v app_role_name=odoo -v app_role_password='<app-password>' <<-'EOSQL'
+CREATE ROLE :"app_role_name"
+    WITH LOGIN CREATEDB PASSWORD :'app_role_password'
+    NOSUPERUSER NOCREATEROLE NOREPLICATION NOBYPASSRLS;
+EOSQL
 ```
 
-Verify: `SELECT rolsuper, rolreplication FROM pg_roles WHERE rolname='odoo';` → both `f`.
+If Odoo previously used the superuser account, create the app role with a new name, grant access to existing databases, then point Odoo at the app role — do **not** strip superuser from the only admin account on PG16+.
 
 ### 5. Restrict `pg_hba.conf`
 
-Edit `/var/lib/postgresql/data/pgdata/pg_hba.conf`. Replace:
+Edit `/var/lib/postgresql/data/pgdata/pg_hba.conf`. Remove the open rule (auth method varies by cluster age):
 
 ```
 host all all all md5
+host all all all scram-sha-256
 ```
 
-With (use your stack's `DOCKER_ODONET_SUBNET`):
+Replace with (preserve the **same** auth method as the rule you removed; use your stack's `DOCKER_ODONET_SUBNET`):
 
 ```
 host all all 172.28.0.0/16 md5
 host all all 127.0.0.1/32 md5
+host all all ::1/128 md5
 ```
 
-Reload: find postgres PID and `kill -HUP <pid>` (or `SELECT pg_reload_conf();` if still superuser).
+(or `scram-sha-256` instead of `md5` on PG14+ defaults)
+
+Reload as superuser: `SELECT pg_reload_conf();`
 
 Detect subnet: `docker network inspect <project>_odoonet --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'`
 
@@ -111,10 +137,11 @@ Regenerates `/etc/odoo/odoo.conf` from `.env`.
 |-------|-----------|
 | No miner | `docker top <project>-db-1` without `dns-filter`/`unicorn` |
 | CPU DB | idle < 10% |
-| Hardened role | `rolsuper = f` |
+| One superuser | only admin bootstrap role |
+| App role | `rolsuper = f`, `rolcreaterole = f` |
 | Odoo connects | logs without `password authentication failed` |
-| COPY blocked | `COPY (SELECT 1) TO PROGRAM 'id';` fails for user `odoo` |
+| COPY blocked | `COPY (SELECT 1) TO PROGRAM 'id';` fails for app user |
 
 ## Dev
 
-`~/.ssh` mount is only in `dev-hosted.yml` / `dev-standalone.yml`, not in base `docker-compose.yml`.
+Host `~/.ssh` is **not** mounted by default. Use a local compose override if you need git-over-SSH inside the container.

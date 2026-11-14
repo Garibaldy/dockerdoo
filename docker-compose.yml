@@ -17,6 +17,18 @@ services:
         - WKHTMLTOX_VERSION=${WKHTMLTOX_VERSION}
     env_file: .env
 
+    environment:
+      POSTGRES_ADMIN_USER: ""
+      POSTGRES_ADMIN_PASSWORD: ""
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      PGHOST: db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:?set POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
+      LIST_DB: ${LIST_DB:-False}
+
     restart: unless-stopped
 
     ports:
@@ -54,7 +66,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          'PGPASSWORD="$${POSTGRES_APP_PASSWORD}" psql -h localhost -U "$${POSTGRES_APP_USER}" -d "$${POSTGRES_DB}" -v ON_ERROR_STOP=1 -qAtc "SELECT COALESCE(bool_and(NOT rolsuper AND rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls), false) FROM pg_roles WHERE rolname = current_user" | grep -qx t',
+          'PGPASSWORD="$${POSTGRES_APP_PASSWORD}" psql -h localhost -U "$${POSTGRES_APP_USER}" -d "$${POSTGRES_DB}" -v ON_ERROR_STOP=1 -qAtc "SELECT COALESCE(bool_and(NOT rolsuper AND rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls AND NOT pg_has_role(current_user, ''pg_execute_server_program'', ''MEMBER'') AND NOT pg_has_role(current_user, ''pg_read_server_files'', ''MEMBER'') AND NOT pg_has_role(current_user, ''pg_write_server_files'', ''MEMBER'')), false) FROM pg_roles WHERE rolname = current_user" | grep -qx t',
         ]
       interval: 30s
       timeout: 10s

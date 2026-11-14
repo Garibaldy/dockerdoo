@@ -24,7 +24,7 @@ First, clone the repository:
 git clone git@github.com:iterativo-git/dockerdoo.git && cd dockerdoo
 ```
 
-Next, configure your environment by copying the example `.env.example` to `.env` and adjusting the variables, especially `ODOO_VERSION` and `PSQL_VERSION`.
+Copy `.env.example` to `.env` (or a private file and pass `docker compose --env-file /path/to/private.env`). Set strong, distinct values for `POSTGRES_PASSWORD`, `POSTGRES_ADMIN_PASSWORD`, and `ADMIN_PASSWORD` before the first `up`. Adjust `ODOO_VERSION` and `PSQL_VERSION` as needed.
 
 ### Standalone (Default)
 
@@ -65,8 +65,11 @@ The `.env` file (copied from `.env.example`) is crucial. Key variables include:
 
 - `ODOO_VERSION`: Specifies the Odoo version (e.g., `17.0`). Must match the desired pre-built image tag or the source code version for hosted setups.
 - `PSQL_VERSION`: PostgreSQL version (e.g., `16`).
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: Database credentials.
-- `ADMIN_PASSWORD`: The master admin password for new Odoo databases.
+- `POSTGRES_DB`: Initial database created by PostgreSQL.
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`: Odoo application role (not a superuser).
+- `POSTGRES_ADMIN_USER`, `POSTGRES_ADMIN_PASSWORD`: Bootstrap superuser for an empty DB volume only (not passed into the Odoo container).
+- `ADMIN_PASSWORD`: Odoo master password for database management.
+- `LIST_DB`: Defaults to `False` in `.env.example` (recommended for production).
 - `PIP_AUTO_INSTALL=1`: Set to `1` to automatically install Python requirements from custom addons on startup.
 - `UPGRADE_ODOO=1`: Set to `1` to attempt `odoo -u all` on startup.
 - `RUN_TESTS=1`: Set to `1` to run Odoo tests on startup (use `WITHOUT_TEST_TAGS` to exclude specific test tags).
@@ -158,7 +161,7 @@ There are two primary ways to handle your custom addons:
 
 ### SSH Key Access
 
-Host SSH keys are **not** mounted by default. To use private git remotes from inside the container, add a local Compose override that mounts `~/.ssh` (dev-only; never in production stacks).
+Host SSH keys are **not** mounted in the base `docker-compose.yml`. Dev overlays (`dev-hosted.yml`, `dev-standalone.yml`, `dev-vscode.yml`) mount `~/.ssh` for git-over-SSH, or use a local compose override (dev-only; never in production stacks).
 
 ## Exposed Ports
 

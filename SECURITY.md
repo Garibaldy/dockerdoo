@@ -144,4 +144,4 @@ Regenerates `/etc/odoo/odoo.conf` from `.env`.
 
 ## Dev
 
-Base `docker-compose.yml` does **not** mount `~/.ssh`. Dev overlays (`dev-hosted.yml`, `dev-standalone.yml`) mount it for git-over-SSH inside the container.
+Base `docker-compose.yml` does **not** mount `~/.ssh`. Dev overlays (`dev-hosted.yml`, `dev-standalone.yml`, `.devcontainer/dev-vscode.yml`) mount it for git-over-SSH inside the container.

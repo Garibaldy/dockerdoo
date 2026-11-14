@@ -69,7 +69,7 @@ This approach is more effective if you'd like have full control over the [source
 
 ## Basic Usage
 
-Before running the compose you should evaluate the `.env` file, which sets most variables used in this project.
+Before running the compose you should evaluate the `.env` file, which sets most variables used in this project. Copy `.env.example` and set strong `POSTGRES_PASSWORD`, `POSTGRES_ADMIN_PASSWORD`, and `ADMIN_PASSWORD` before the first start (see `SECURITY.md`).
 
 ### Available `docker-compose up` arguments
 

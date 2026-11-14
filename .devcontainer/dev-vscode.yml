@@ -3,6 +3,8 @@ version: "3.7"
 services:
   odoo:
     volumes:
+      # Host paths (.ssh for git inside container — dev only)
+      - ~/.ssh/:/opt/odoo/.ssh/:cached
       # Host paths (.vscode configuration)
       - ./.devcontainer/.vscode:${ODOO_EXTRA_ADDONS}/.vscode
       #

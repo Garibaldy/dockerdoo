@@ -7,7 +7,7 @@ networks:
   odoonet:
     ipam:
       config:
-        - subnet: ${DOCKER_ODONET_SUBNET:-172.28.0.0/16}
+        - subnet: ${DOCKER_ODONET_SUBNET:-172.21.0.0/16}
 
 volumes:
   odoo-data:
@@ -34,18 +34,49 @@ services:
 
     restart: unless-stopped
 
-    ports: ["8069:8069", "8072:8072"]
+    ports: ["8071:8069", "8075:8072"]
 
     volumes:
       - odoo-data:${ODOO_DATA_DIR}
       - odoo-testlogs:${ODOO_LOGS_DIR}
-      - odoo-modules:${ODOO_EXTRA_ADDONS}
+      # - odoo-modules:${ODOO_EXTRA_ADDONS}
+      # Host paths (odoo modules, src code & conf)
+      - ./custom:${ODOO_EXTRA_ADDONS}:delegated
+      - ./resources/getaddons4.py:/getaddons.py:ro
+      - ./resources/entrypoint.sh:/entrypoint.sh:ro
+      - ./resources/requirements-ecf.txt:/resources/requirements-ecf.txt:ro
     depends_on:
       db:
         condition: service_healthy
 
     networks:
       odoonet:
+
+  playwright-ecf:
+    build:
+      context: ./custom/addonsEP16/certificacion_ecf/services
+      dockerfile: Dockerfile
+    hostname: playwright-ecf
+    restart: unless-stopped
+    environment:
+      PLAYWRIGHT_SERVICE_PORT: "8765"
+      PLAYWRIGHT_HEADLESS: "true"
+    shm_size: "1gb"
+    volumes:
+      - ./custom/addonsEP16/certificacion_ecf/services/playwright_service.py:/app/playwright_service.py:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8765/health', timeout=5)\"",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      odoonet:
+
   # ------------------------
   db:
     image: postgres:${PSQL_VERSION}
@@ -60,7 +91,7 @@ services:
       - POSTGRES_APP_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       - POSTGRES_APP_USER=${POSTGRES_USER:?set POSTGRES_USER}
       - PGDATA=/var/lib/postgresql/data/pgdata
-      - DOCKER_ODONET_SUBNET=${DOCKER_ODONET_SUBNET:-172.28.0.0/16}
+      - DOCKER_ODONET_SUBNET=${DOCKER_ODONET_SUBNET:-172.21.0.0/16}
     healthcheck:
       test:
         [

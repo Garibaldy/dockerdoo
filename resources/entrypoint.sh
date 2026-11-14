@@ -67,6 +67,10 @@ if [ -z "$EXTRA_ADDONS_PATHS" ]; then
 else
     if [ "$PIP_AUTO_INSTALL" -eq "1" ]; then
         find $ODOO_EXTRA_ADDONS -name 'requirements.txt' -exec pip3 install --progress-bar off --user -r {} \;
+        if [ -f /resources/requirements-ecf.txt ]; then
+            pip3 install --progress-bar off --user -r /resources/requirements-ecf.txt
+            pip3 install --progress-bar off --user 'cryptography==42.0.8' --force-reinstall --no-deps
+        fi
     fi
     sed -i "s|addons_path = *|addons_path = ${EXTRA_ADDONS_PATHS},|" $ODOO_RC
 fi

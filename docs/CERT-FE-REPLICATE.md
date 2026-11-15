@@ -1,5 +1,7 @@
 # Réplica greenfield — certificación e-CF (doo16-certFE)
 
+**Para compartir con el equipo (paso a paso):** [CERT-FE-QUICKSTART.md](CERT-FE-QUICKSTART.md)
+
 Despliegue en un **host vacío**: sin DB, volúmenes ni sesión DGII de otro servidor. Solo clones + `.env` + bootstrap de módulos.
 
 ## 1. Prerrequisitos

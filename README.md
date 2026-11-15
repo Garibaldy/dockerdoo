@@ -1,5 +1,17 @@
 # Dockerized Odoo
 
+## Certificación e-CF (rama `doo16-certFE`)
+
+Rama para desplegar Odoo 16 + addons EP16 + sidecar Playwright/DgiiSigner (certificación DGII).
+
+| Documento | Uso |
+|-----------|-----|
+| [docs/CERT-FE-QUICKSTART.md](docs/CERT-FE-QUICKSTART.md) | **Compartir con el equipo** — clones, `.env`, build, módulos |
+| [docs/CERT-FE-REPLICATE.md](docs/CERT-FE-REPLICATE.md) | Greenfield completo + troubleshooting |
+| [custom/REPOS.md](custom/REPOS.md) | URLs de clone en `custom/` |
+
+---
+
 This is a flexible and **streamlined** version of most dockerized Odoo projects that you'll find. And one that allows you to deploy with two different methods using the same Dockerfile:
 
 * **Standalone**: As most people use their implementation. With Odoo's source code inside the container. **This is the default**

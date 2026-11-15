@@ -22,4 +22,5 @@ Stack Docker: rama `doo16-certFE` de https://github.com/Garibaldy/dockerdoo.git
 
 **Mantenimiento:** el desarrollo activo puede seguir en `intrepidux/addonsEP16` (privado); `SuperOdoo/addonsEP16` es el espejo para revisión del equipo en rama `certFE`.
 
-Guía completa: [docs/CERT-FE-REPLICATE.md](../docs/CERT-FE-REPLICATE.md)
+**Guía para levantar el ambiente:** [docs/CERT-FE-QUICKSTART.md](../docs/CERT-FE-QUICKSTART.md)  
+Réplica / troubleshooting: [docs/CERT-FE-REPLICATE.md](../docs/CERT-FE-REPLICATE.md)

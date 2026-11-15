@@ -45,6 +45,8 @@ services:
       - ./resources/getaddons4.py:/getaddons.py:ro
       - ./resources/entrypoint.sh:/entrypoint.sh:ro
       - ./resources/requirements-ecf.txt:/resources/requirements-ecf.txt:ro
+      - ./resources/certfe-modules-installed.txt:/resources/certfe-modules-installed.txt:ro
+      - ./resources/scripts:/resources/scripts:ro
     depends_on:
       db:
         condition: service_healthy
@@ -56,11 +58,17 @@ services:
     build:
       context: ./custom/addonsEP16/certificacion_ecf/services
       dockerfile: Dockerfile
+      args:
+        GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+        DGII_SIGNER_REF: ${DGII_SIGNER_REF:-main}
     hostname: playwright-ecf
     restart: unless-stopped
     environment:
       PLAYWRIGHT_SERVICE_PORT: "8765"
       PLAYWRIGHT_HEADLESS: "true"
+      ASPNETCORE_URLS: "http://0.0.0.0:5000"
+      ASPNETCORE_ENVIRONMENT: Production
+      DGII_SIGNER_DIR: /app/dgiisigner
     shm_size: "1gb"
     volumes:
       - ./custom/addonsEP16/certificacion_ecf/services/playwright_service.py:/app/playwright_service.py:ro

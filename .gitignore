@@ -3,6 +3,7 @@ _testlogs/
 
 /custom/**
 !/custom/**/.gitkeep
+!/custom/REPOS.md
 /src/**
 !/src/**/
 !/src/**/.gitkeep
@@ -10,6 +11,8 @@ _testlogs/
 *.sh
 !resources/postgres-init/
 !resources/postgres-init/**
+!resources/scripts/
+!resources/scripts/**
 
 # Created by https://www.gitignore.io/api/test,macos,linux,python,windows,pycharm,virtualenv,sublimetext,visualstudiocode
 # Edit at https://www.gitignore.io/?templates=test,macos,linux,python,windows,pycharm,virtualenv,sublimetext,visualstudiocode
@@ -379,6 +382,8 @@ GitHub.sublime-settings
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts
+!resources/scripts/
+!resources/scripts/**
 pyvenv.cfg
 pip-selfcheck.json
 

@@ -16,7 +16,7 @@ git clone -b doo16-certFE https://github.com/Garibaldy/dockerdoo.git doo16-cert
 cd doo16-cert
 mkdir -p custom
 
-git clone -b certFE https://github.com/intrepidux/addonsEP16.git custom/addonsEP16
+git clone -b certFE https://github.com/SuperOdoo/addonsEP16.git custom/addonsEP16
 git clone --depth 1 -b main https://github.com/diegobgl/odoo16ee.git custom/odoo16ee
 ```
 
